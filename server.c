@@ -6,9 +6,17 @@
 #include <netinet/in.h>
 #include <string.h>
 
-#define PORT 8080
 int main(int argc, char const *argv[])
 {
+	if (argc != 2)
+	{
+		fprintf(stderr, "Wrong arguments passed\n");
+
+		return 1;
+	}
+
+	const int PORT = atoi(argv[1]);
+
     int server_fd, new_socket; long valread;
     struct sockaddr_in address;
     int addrlen = sizeof(address);
