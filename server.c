@@ -18,7 +18,7 @@ int main(int argc, char *argv[])
 
 	int port = atoi(argv[1]);
 
-	char server_message[256] = "You have reached the server!";
+	char server_message[256] = "You have reached the server!\n";
 
 	// create the server socket
 	int server_socket;
@@ -68,6 +68,7 @@ int main(int argc, char *argv[])
 
 		// send the message
 		send(client_socket, server_message, sizeof(server_message), 0);
+		printf(server_message);
 
 		// close the socket
 		close(server_socket);
