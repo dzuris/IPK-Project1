@@ -22,7 +22,7 @@ int main(int argc, char const *argv[])
     int addrlen = sizeof(address);
     
     // Only this line has been changed. Everything is same.
-    char *hello = "HTTP/1.1 200 OK\nContent-Type: text/plain\nContent-Length: 12\n\nHello world!";
+    char *hello = "HTTP/1.1 200 OK\nContent-Type: text/plain\nContent-Length: 12\n\nHelllo world!\n";
     
     // Creating socket file descriptor
     if ((server_fd = socket(AF_INET, SOCK_STREAM, 0)) == 0)
@@ -60,7 +60,7 @@ int main(int argc, char const *argv[])
         
         char buffer[30000] = {0};
         valread = read( new_socket , buffer, 30000);
-        printf("%s\n",buffer );
+        printf("%s",buffer );
         write(new_socket , hello , strlen(hello));
         printf("------------------Hello message sent-------------------");
         close(new_socket);
