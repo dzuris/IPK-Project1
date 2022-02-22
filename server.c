@@ -75,18 +75,26 @@ int main(int argc, char const *argv[])
         char message[256] = {0};
         if (!strncmp(buffer, "GET /hostname ", 14))
         {
-            create_http_message(message, "vrat hostname");
+            printf("System returning hostname to client\n");
+            char hostname[256];
+            get_hostname(hostname);
+            create_http_message(message, hostname);
         }
         else if(!strncmp(buffer, "GET /cpu-name ", 14))
         {
-            create_http_message(message, "vrat cpu");
+            printf("System returning cpu-name to client\n");
+            char cpu[256];
+            get_cpu_name(cpu);
+            create_http_message(message, cpu);
         }
         else if(!strncmp(buffer, "GET /load ", 10))
         {
+            printf("System returning cpu-load to client\n");
             create_http_message(message, "vrat load");
         }
         else
         {
+            printf("Invalid request by client\n");
             create_http_message(message, "404: Not Found");
         }
 
@@ -116,18 +124,32 @@ void create_http_message(char *final_message, char *message_to_include)
 
 void  INThandler(int sig)
 {
-     char  c;
-
      signal(sig, SIG_IGN);
      printf("\nServer is shutting down...\n");
-     /*c = getchar();
-     if (c == 'y' || c == 'Y')
-          exit(0);
-     else
-          signal(SIGINT, INThandler);
-     getchar(); // Get new line character*/
 
      close(server_socket);
 
      exit(0);
+}
+
+void get_hostname(char *return_hostname)
+{
+    FILE *file = fopen("/proc/sys/kernel/hostname", "r");
+    fgets(return_hostname, 100, file);
+    fclose(file);
+    return_hostname[strlen(return_hostname) - 1] = '\0';
+}
+
+void get_cpu_name(char *return_cpu_name)
+{
+    char *str = "cat /proc/cpuinfo | grep \"model name\" | head -n 1 | awk -F \": \" '{print $2}'";
+    FILE *file = popen(str, "r");
+    fgets(return_cpu_name, 100, file);
+    return_cpu_name[strlen(return_cpu_name) - 1] = '\0';
+    pclose(file);
+}
+
+int get_load()
+{
+
 }
