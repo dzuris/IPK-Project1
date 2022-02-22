@@ -3,67 +3,131 @@
 #include <sys/socket.h>
 #include <unistd.h>
 #include <stdlib.h>
+#include <signal.h>
 #include <netinet/in.h>
 #include <string.h>
 
+#include "server.h"
+
+int server_socket;
+
 int main(int argc, char const *argv[])
 {
+	// check if user passed port number
 	if (argc != 2)
 	{
-		fprintf(stderr, "Wrong arguments passed\n");
-
-		return 1;
+		perror("ERROR in arguments!");
+		exit(EXIT_FAILURE);
 	}
+    
+    // CTRL+C listener
+	signal(SIGINT, INThandler);
 
+	// setting port
 	const int PORT = atoi(argv[1]);
 
-    int server_fd, new_socket; long valread;
-    struct sockaddr_in address;
-    int addrlen = sizeof(address);
-    
-    // Only this line has been changed. Everything is same.
-    char *hello = "HTTP/1.1 200 OK\nContent-Type: text/plain\nContent-Length: 12\n\nHelllo world!\n";
-    
     // Creating socket file descriptor
-    if ((server_fd = socket(AF_INET, SOCK_STREAM, 0)) == 0)
+    if ((server_socket = socket(AF_INET, SOCK_STREAM, 0)) <= 0)
     {
-        perror("In socket");
+        perror("ERROR in socket");
         exit(EXIT_FAILURE);
     }
-    
 
-    address.sin_family = AF_INET;
-    address.sin_addr.s_addr = INADDR_ANY;
-    address.sin_port = htons( PORT );
+    int optval = 1;
+    setsockopt(server_socket, SOL_SOCKET, SO_REUSEADDR,
+    	(const void *)&optval, sizeof(int));
+
+    struct sockaddr_in server_address;
+
+    bzero((char *) &server_address, sizeof(server_address));
+    server_address.sin_family = AF_INET;
+    server_address.sin_addr.s_addr = htonl(INADDR_ANY);
+    server_address.sin_port = htons((unsigned short)PORT);
     
-    memset(address.sin_zero, '\0', sizeof address.sin_zero);
-    
-    
-    if (bind(server_fd, (struct sockaddr *)&address, sizeof(address))<0)
+    if (bind(server_socket, (struct sockaddr *) &server_address, sizeof(server_address)) < 0)
     {
-        perror("In bind");
+        perror("ERROR in bind");
         exit(EXIT_FAILURE);
     }
-    if (listen(server_fd, 10) < 0)
+
+    if (listen(server_socket, 10) < 0)
     {
-        perror("In listen");
+        perror("ERROR in listen");
         exit(EXIT_FAILURE);
     }
+
+    int addrlen = sizeof(server_address);
+
     while(1)
     {
         printf("\n+++++++ Waiting for new connection ++++++++\n\n");
-        if ((new_socket = accept(server_fd, (struct sockaddr *)&address, (socklen_t*)&addrlen))<0)
+
+    	int client_socket;
+        if ((client_socket = accept(server_socket, (struct sockaddr *)&server_address, (socklen_t*)&addrlen))<0)
         {
-            perror("In accept");
+            perror("ERROR in accept");
             exit(EXIT_FAILURE);
         }
-        
-        char buffer[30000] = {0};
-        valread = read( new_socket , buffer, 30000);
-        printf("%s",buffer );
-        write(new_socket , hello , strlen(hello));
-        printf("------------------Hello message sent-------------------");
-        close(new_socket);
+    
+        char buffer[2048] = {0};
+        read( client_socket , buffer, 2048);
+
+        char message[256] = {0};
+        if (!strncmp(buffer, "GET /hostname ", 14))
+        {
+            create_http_message(message, "vrat hostname");
+        }
+        else if(!strncmp(buffer, "GET /cpu-name ", 14))
+        {
+            create_http_message(message, "vrat cpu");
+        }
+        else if(!strncmp(buffer, "GET /load ", 10))
+        {
+            create_http_message(message, "vrat load");
+        }
+        else
+        {
+            create_http_message(message, "404: Not Found");
+        }
+
+        write(client_socket , message , (int)strlen(message));
+
+        printf("\n+++++++ Closing connection ++++++++\n\n");
+
+        close(client_socket);
     }
+
+    close(server_socket);
+
     return 0;
+}
+
+void create_http_message(char *final_message, char *message_to_include)
+{
+    char message[256] = "HTTP/1.1 200 OK\nContent-Type: text/plain\nContent-Length: ";
+    char length[5];
+    sprintf(length, "%d", (int)strlen(message_to_include));
+    strcat(message, length);
+    strcat(message, "\n\n");
+    strcat(message, message_to_include);
+    strcat(message, "\r\n\r\n");
+    strcpy(final_message, message);
+}
+
+void  INThandler(int sig)
+{
+     char  c;
+
+     signal(sig, SIG_IGN);
+     printf("\nServer is shutting down...\n");
+     /*c = getchar();
+     if (c == 'y' || c == 'Y')
+          exit(0);
+     else
+          signal(SIGINT, INThandler);
+     getchar(); // Get new line character*/
+
+     close(server_socket);
+
+     exit(0);
 }
