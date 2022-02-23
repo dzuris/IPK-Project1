@@ -1,7 +1,5 @@
-// Server side C program to demonstrate HTTP Server programming
 #include <stdio.h>
 #include <sys/socket.h>
-//#include <sys/types.h>
 #include <unistd.h>
 #include <stdlib.h>
 #include <signal.h>
@@ -122,6 +120,9 @@ int main(int argc, char const *argv[])
     return 0;
 }
 
+/*
+ * Creating http message in text/plain form, returning by pointer final_message and printing information from message_to_include
+ */
 void create_http_message(char *final_message, char *message_to_include)
 {
     char message[256] = "HTTP/1.1 200 OK\nContent-Type: text/plain\nContent-Length: ";
@@ -134,6 +135,9 @@ void create_http_message(char *final_message, char *message_to_include)
     strcpy(final_message, message);
 }
 
+/*
+ * Ctrl+C listener, closing socket when server is shutting down
+ */
 void  INThandler(int sig)
 {
      signal(sig, SIG_IGN);
@@ -144,6 +148,9 @@ void  INThandler(int sig)
      exit(0);
 }
 
+/*
+ * Funtion returns hostname by pointer
+ */
 void get_hostname(char *return_hostname)
 {
     FILE *file = fopen("/proc/sys/kernel/hostname", "r");
@@ -152,6 +159,9 @@ void get_hostname(char *return_hostname)
     return_hostname[strlen(return_hostname) - 1] = '\0';
 }
 
+/*
+ * Funtion returns cpu name by pointer
+ */
 void get_cpu_name(char *return_cpu_name)
 {
     char *str = "cat /proc/cpuinfo | grep \"model name\" | head -n 1 | awk -F \": \" '{print $2}'";
@@ -161,14 +171,20 @@ void get_cpu_name(char *return_cpu_name)
     pclose(file);
 }
 
+/*
+ * Function returns integer of on how many percent is cpu used
+ */
 int GetCPULoad()
 {
+    // List of data
     unsigned long long int first_data[10];
     unsigned long long int second_data[10];
+    // Getting values with space of 0.5sec
     get_cpu_data(&first_data);
     usleep(500000);
     get_cpu_data(&second_data);
 
+    // Calculations for cpu usage
     first_data[3] = first_data[3] + first_data[4];
     second_data[3] = second_data[3] + second_data[4];
     unsigned long long int prev_non_idle = first_data[0] + first_data[1] + first_data[2] + first_data[5] + first_data[6] + first_data[7];
@@ -178,36 +194,27 @@ int GetCPULoad()
     unsigned long long int total_diff = total - prev_total;
     unsigned long long int idle_diff = second_data[3] - first_data[3];
 
+    // Rounding cpu usage
     int load_int = ((total_diff - idle_diff)/(float)total_diff)*100;
     float load = ((total_diff - idle_diff)/(float)total_diff)*100;
     if ((load - load_int) >= 0.50)
         load_int++;
 
-    /*
-    pdata = first
-    cdata = second
-    unsigned long long int user;        0
-    unsigned long long int nice;        1
-    unsigned long long int systemA;     2
-    unsigned long long int idle;        3
-    unsigned long long int iowait;      4
-    unsigned long long int irq;         5
-    unsigned long long int softirq;     6
-    unsigned long long int steal;       7
-    unsigned long long int guest;       8
-    unsigned long long int guest_nice;  9
-    */
-
     return load_int;
 }
 
+/*
+ * Function return data by list pointer, list is filled by cpu usage values
+ */
 void get_cpu_data(unsigned long long int *data)
 {
+    // get cpu stats
     char cpu_data_str[256];
     FILE *file = fopen("/proc/stat", "r");
     fgets(cpu_data_str, 256, file);
     fclose(file);
 
+    // Split stats into list
     int init_size = strlen(cpu_data_str);
     char delim[] = " ";
 
@@ -216,12 +223,14 @@ void get_cpu_data(unsigned long long int *data)
     char data_list[11][256];
     int i = 0;
 
+    // copy splitted rows into list
     while (ptr != NULL)
     {
         strcpy(data_list[i++], ptr);
         ptr = strtok(NULL, delim);
     }
 
+    // Return list
     data[0] = atoi(data_list[1]);
     data[1] = atoi(data_list[2]);
     data[2] = atoi(data_list[3]);
@@ -232,15 +241,4 @@ void get_cpu_data(unsigned long long int *data)
     data[7] = atoi(data_list[8]);
     data[8] = atoi(data_list[9]);
     data[9] = atoi(data_list[10]);
-
-    /*data->user = data_list[0];
-    data->nice = data_list[1];
-    data->systemA;
-    data->idle;
-    data->iowait;
-    data->irq;
-    data->softirq;
-    data->steal;
-    data->guest;
-    data->guest_nice;*/
 }
