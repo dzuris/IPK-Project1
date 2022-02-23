@@ -21,7 +21,7 @@ int main(int argc, char const *argv[])
 		exit(EXIT_FAILURE);
 	}
     
-    // CTRL+C listener
+    // CTRL+C listener, server is closing in INThandler function
 	signal(SIGINT, INThandler);
 
 	// setting port
@@ -34,12 +34,13 @@ int main(int argc, char const *argv[])
         exit(EXIT_FAILURE);
     }
 
+    // User is able to use port instantly after closing server
     int optval = 1;
     setsockopt(server_socket, SOL_SOCKET, SO_REUSEADDR,
     	(const void *)&optval, sizeof(int));
 
+    // Server address options
     struct sockaddr_in server_address;
-
     bzero((char *) &server_address, sizeof(server_address));
     server_address.sin_family = AF_INET;
     server_address.sin_addr.s_addr = htonl(INADDR_ANY);
@@ -59,10 +60,12 @@ int main(int argc, char const *argv[])
 
     int addrlen = sizeof(server_address);
 
+    // Server run cycle
     while(1)
     {
         printf("\n+++++++ Waiting for new connection ++++++++\n\n");
 
+        // Creating client socket
     	int client_socket;
         if ((client_socket = accept(server_socket, (struct sockaddr *)&server_address, (socklen_t*)&addrlen))<0)
         {
@@ -70,10 +73,13 @@ int main(int argc, char const *argv[])
             exit(EXIT_FAILURE);
         }
     
+        // Get request from client
         char buffer[2048] = {0};
         read( client_socket , buffer, 2048);
 
+        // Compare request
         char message[256] = {0};
+        // Return hostname
         if (!strncmp(buffer, "GET /hostname ", 14))
         {
             printf("System returning hostname to client\n");
@@ -81,6 +87,7 @@ int main(int argc, char const *argv[])
             get_hostname(hostname);
             create_http_message(message, hostname);
         }
+        // Return cpu name
         else if(!strncmp(buffer, "GET /cpu-name ", 14))
         {
             printf("System returning cpu-name to client\n");
@@ -88,6 +95,7 @@ int main(int argc, char const *argv[])
             get_cpu_name(cpu);
             create_http_message(message, cpu);
         }
+        // Return cpu usage
         else if(!strncmp(buffer, "GET /load ", 10))
         {
             printf("System returning cpu-load to client\n");
@@ -96,19 +104,20 @@ int main(int argc, char const *argv[])
             strcat(percent, "%");
             create_http_message(message, percent);
         }
+        // Error: Bad request
         else
         {
             create_http_message(message, "400: Bad request");
         }
 
+        // Write message to client
         write(client_socket , message , (int)strlen(message));
 
         printf("\n+++++++ Closing connection ++++++++\n\n");
 
+        // Closing client socket, then waiting for another one
         close(client_socket);
     }
-
-    close(server_socket);
 
     return 0;
 }
