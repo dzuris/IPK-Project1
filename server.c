@@ -1,19 +1,19 @@
 #include <stdio.h>
-#include <sys/socket.h>
-#include <unistd.h>
 #include <stdlib.h>
-#include <signal.h>
-#include <netinet/in.h>
 #include <string.h>
+#include <unistd.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <signal.h>
 
 #include "server.h"
 
 int server_socket;
 
-int main(int argc, char const *argv[])
+int main(int argc, char *argv[])
 {
 	// check if user passed port number
-	if (argc != 2)
+	if (argc != 2 || !valid_int(argv[1]))
 	{
 		perror("ERROR in arguments!");
 		exit(EXIT_FAILURE);
@@ -61,8 +61,6 @@ int main(int argc, char const *argv[])
     // Server run cycle
     while(1)
     {
-        printf("\n+++++++ Waiting for new connection ++++++++\n\n");
-
         // Creating client socket
     	int client_socket;
         if ((client_socket = accept(server_socket, (struct sockaddr *)&server_address, (socklen_t*)&addrlen))<0)
@@ -80,7 +78,6 @@ int main(int argc, char const *argv[])
         // Return hostname
         if (!strncmp(buffer, "GET /hostname ", 14))
         {
-            printf("System returning hostname to client\n");
             char hostname[256];
             get_hostname(hostname);
             create_http_message(message, hostname);
@@ -88,7 +85,6 @@ int main(int argc, char const *argv[])
         // Return cpu name
         else if(!strncmp(buffer, "GET /cpu-name ", 14))
         {
-            printf("System returning cpu-name to client\n");
             char cpu[256];
             get_cpu_name(cpu);
             create_http_message(message, cpu);
@@ -96,8 +92,7 @@ int main(int argc, char const *argv[])
         // Return cpu usage
         else if(!strncmp(buffer, "GET /load ", 10))
         {
-            printf("System returning cpu-load to client\n");
-            char percent[4];
+            char percent[3];
             sprintf(percent, "%d", GetCPULoad());
             strcat(percent, "%");
             create_http_message(message, percent);
@@ -111,13 +106,27 @@ int main(int argc, char const *argv[])
         // Write message to client
         write(client_socket , message , (int)strlen(message));
 
-        printf("\n+++++++ Closing connection ++++++++\n\n");
-
         // Closing client socket, then waiting for another one
         close(client_socket);
     }
 
     return 0;
+}
+
+/*
+ * Function to check if argument is valid
+ */
+int valid_int(char *number)
+{
+    for (int i = 0; i < strlen(number); i++)
+    {
+        if(number[i] < '0' || number[i] > '9')
+        {
+            return 0;
+        }
+    }
+
+    return 1;
 }
 
 /*
@@ -179,9 +188,10 @@ int GetCPULoad()
     // List of data
     unsigned long long int first_data[10];
     unsigned long long int second_data[10];
+
     // Getting values with space of 0.5sec
     get_cpu_data(&first_data);
-    usleep(500000);
+    usleep(300000);
     get_cpu_data(&second_data);
 
     // Calculations for cpu usage
@@ -196,9 +206,8 @@ int GetCPULoad()
 
     // Rounding cpu usage
     int load_int = ((total_diff - idle_diff)/(float)total_diff)*100;
-    float load = ((total_diff - idle_diff)/(float)total_diff)*100;
-    if ((load - load_int) >= 0.50)
-        load_int++;
+    //float load = ((total_diff - idle_diff)/(float)total_diff)*100;
+    //if ((load - load_int) >= 0.50) load_int++;
 
     return load_int;
 }
@@ -206,7 +215,7 @@ int GetCPULoad()
 /*
  * Function return data by list pointer, list is filled by cpu usage values
  */
-void get_cpu_data(unsigned long long int *data)
+void get_cpu_data(unsigned long long int (*data)[10])
 {
     // get cpu stats
     char cpu_data_str[256];
@@ -220,7 +229,7 @@ void get_cpu_data(unsigned long long int *data)
 
     char *ptr = strtok(cpu_data_str, delim);
 
-    char data_list[11][256];
+    char data_list[11][32];
     int i = 0;
 
     // copy splitted rows into list
@@ -231,14 +240,14 @@ void get_cpu_data(unsigned long long int *data)
     }
 
     // Return list
-    data[0] = atoi(data_list[1]);
-    data[1] = atoi(data_list[2]);
-    data[2] = atoi(data_list[3]);
-    data[3] = atoi(data_list[4]);
-    data[4] = atoi(data_list[5]);
-    data[5] = atoi(data_list[6]);
-    data[6] = atoi(data_list[7]);
-    data[7] = atoi(data_list[8]);
-    data[8] = atoi(data_list[9]);
-    data[9] = atoi(data_list[10]);
+    (*data)[0] = atoi(data_list[1]);
+    (*data)[1] = atoi(data_list[2]);
+    (*data)[2] = atoi(data_list[3]);
+    (*data)[3] = atoi(data_list[4]);
+    (*data)[4] = atoi(data_list[5]);
+    (*data)[5] = atoi(data_list[6]);
+    (*data)[6] = atoi(data_list[7]);
+    (*data)[7] = atoi(data_list[8]);
+    (*data)[8] = atoi(data_list[9]);
+    (*data)[9] = atoi(data_list[10]);
 }
