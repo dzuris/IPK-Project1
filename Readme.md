@@ -17,7 +17,7 @@ Program needs one parameter - PORT number.
 $ make hinfosvc
 ```
 
-### Usage
+## Usage
 
 ```
 $ ./hinfosvc PORT_NUMBER
