@@ -35,6 +35,8 @@ int main(int argc, char *argv[])
     // User is able to use port instantly after closing server
     int optval = 1;
     setsockopt(server_socket, SOL_SOCKET, SO_REUSEADDR,
+        (const void *)&optval, sizeof(int));
+    setsockopt(server_socket, SOL_SOCKET, SO_REUSEPORT,
     	(const void *)&optval, sizeof(int));
 
     // Server address options
