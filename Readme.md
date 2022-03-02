@@ -1,14 +1,14 @@
-# IPK Project 1
+# Server communicating by HTTP protocol 
 
-HTML Server running on linux (ubuntu 20.04 LTS)
+HTTP Server running on linux (ubuntu 20.04 LTS).
 
 ## About program
 
-Program is listening to client, program isable to process three main requests and returns are in text/plain form:
+Server is providing various information about system, is listening to client on selecte port and is able to process three main requests and returns are in text/plain form:
 1. GET /hostname  - program returns hostname of system where server is running
 2. GET /cpu-name  - program returns name of system's cpu
 3. GET /load      - program returns cpu usage
-HTML Server could be launched from internet explorer, client console aplication and from terminal itself.
+HTML Server could be launched from internet explorer, client console aplication and from terminal by commands wget and curl.
 Program needs one parameter - PORT number.
 
 ### Creating executable file
